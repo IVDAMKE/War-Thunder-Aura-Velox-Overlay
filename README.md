@@ -73,3 +73,4 @@ To use the **AI Co-Pilot** and **AI Chat Translation** features, you will need t
 ---
 
 *WT Aura Velox Overlay is an open-source tool and is not officially affiliated with Gaijin Entertainment.*
+*This code includes code/text that was written by AI*
