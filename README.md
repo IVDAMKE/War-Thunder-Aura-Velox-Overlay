@@ -1,39 +1,77 @@
-# Tauri + SvelteKit
+# WT Aura Velox Overlay (WTAVO)
 
-This template should help get you started developing with Tauri and SvelteKit in Vite.
+**WT Aura Velox Overlay (WTAVO)** is an advanced, fully transparent desktop assistant and overlay designed specifically for **War Thunder Air Simulator (Air SB)** players. By hooking into War Thunder's local browser map interface (`localhost:8111`), WTAVO extracts live telemetry, chat, and map data, presenting it in an immersive, customizable overlay that sits directly on top of your game window.
 
-## Recommended IDE Setup
+---
 
-[VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer).
+## 🌟 Key Features for Air Simulator
 
+### 🗣️ Live Chat Translation & Map Pings
+Communication is key in Simulator battles, but language barriers can cause critical information to be lost.
+* **Auto-Translation**: Automatically translates foreign game chat messages into your preferred language using AI or Google Translate. 
+* **Team Filtering**: Filter chat messages to only see "Team" or "Squad" chat, hiding unnecessary system messages or enemy banter.
+* **Auto-Map Pings**: Whenever an ally types a grid reference in chat (e.g., `[D5]` or `Attention to the designated grid zone! [C4]`), WTAVO instantly places a temporary glowing waypoint on your Tactical Map!
 
-# REMINDER TO ME
-[Top-Level: The Frontend](SvelteKit)
-The root of your workspace contains your frontend project, which handles the user interface. Because you chose SvelteKit, these files are specific to building and bundling your web code:
+### 🗺️ Interactive Tactical Map & Navigation
+The in-game map is limited. WTAVO provides a fully featured tactical drawing board.
+* **Draw Tools**: Draw lines, circles, paths, and place waypoints on the map.
+* **Distance Measurements**: Automatically calculates and displays the distance of your drawn lines/paths in **kilometers (km)** or **nautical miles (nm)**.
+* **Map Templates**: Save your tactical drawings and waypoints as templates. When you load into a specific map (e.g., "Afghanistan" or "Dover"), WTAVO can automatically load your pre-saved waypoints and strategic routes!
 
-<src/:> This is where you will write your Svelte components, HTML, and CSS to design your app's interface.
+### 🎙️ Voice-Activated AI Co-Pilot
+A hands-free, telemetry-aware AI assistant sitting in the cockpit with you.
+* **Voice Recognition**: Talk directly into your microphone to ask the Co-Pilot questions without taking your hands off your HOTAS.
+* **Context-Aware**: The AI knows your current altitude, speed, heading, and aircraft type. Ask it things like *"What is my optimal climb speed?"* or *"Am I stalling?"* and it will respond based on your live telemetry data!
+* **Immersive TTS**: Co-pilot responds using Text-to-Speech (powered by OpenAI or Gemini) with optional radio-distortion effects for maximum immersion.
 
-<static/:> This folder holds static assets like images, fonts, or raw data files that your web frontend might need.
+### 🛩️ Live Telemetry HUD
+Keep your eyes out of the cockpit with a customizable, external Heads Up Display.
+* **Crucial Flight Data**: Real-time readouts of IAS, TAS, Mach, Altitude, Compass Heading, AoA (Angle of Attack), Engine RPM, and Throttle.
+* **Warnings**: Flashing visual alerts for **Stall Warnings** and **High G-Force** stress.
 
-<svelte-kit/:> A generated folder used internally by SvelteKit during development to process your files.
+### 👻 Seamless Transparent Overlay (Compact Mode)
+WTAVO is built on Tauri and SvelteKit, allowing it to become a borderless, fully transparent overlay. Enable **Compact Mode** in the settings, and the UI elements will float directly over your War Thunder client without capturing your mouse clicks (unless you interact with the widgets).
 
-<package.json > and <package-lock.json:> These files manage your Node.js dependencies, tracking the frontend tools and libraries your project needs (like Vite and the Tauri JS API).
+---
 
-<vite.config.js >and <velte.config.js:> These are configuration files that dictate how Vite (your web bundler) and SvelteKit process your frontend code.
+## 🚀 Getting Started
 
-[src-tauri/: The Backend](Rust)
-This subdirectory houses the Rust project, which serves as the core engine of your Tauri application.
+### Prerequisites
+* **War Thunder**: Must be running on your PC. The game automatically hosts a local server on port `8111`.
+* **OS**: Windows 10/11 is recommended.
 
-<src/:> This directory contains your Rust source code. Inside, you will find main.rs, which is the main entry point for the desktop application. You will also find lib.rs, which contains your core Rust logic and acts as the entry point for mobile builds.
+### Installation
 
-<tauri.conf.json:> This is the main configuration file for Tauri. It serves as a marker for the Tauri CLI to locate your Rust project, and it contains essential settings like your application's identifier and development server URLs.
+If you are downloading a pre-built release:
+1. Go to the [Releases](https://github.com/ivdamke/WT-Aura-Velox-Overlay/releases) page.
+2. Download and run the `WTAVO-Installer.exe`.
+3. Launch the app while War Thunder is open.
 
-<capabilities/:> This is the default directory where Tauri reads capability files. These JSON files define strict security permissions, allowing you to explicitly declare which backend commands your JavaScript code is allowed to use.
+### Development Setup
+If you want to build the overlay from source:
 
-<icons/:> This folder is the default output directory for your application's icons (like .ico for Windows or .png for Linux). These icons are referenced directly inside your tauri.conf.json file.
+1. Clone this repository.
+2. Ensure you have **Node.js** and **Rust** installed on your system.
+3. Install dependencies:
+   ```bash
+   npm install
+   ```
+4. Run the development server:
+   ```bash
+   npm run tauri dev
+   ```
+5. To build a production executable/installer:
+   ```bash
+   npm run tauri build
+   ```
 
-<Cargo.toml> and <Cargo.lock:> These are the manifest files for Cargo, Rust's built-in package manager. They declare the backend libraries (crates) your Rust code requires.
+## ⚙️ Configuration & API Keys
 
-<build.rs:> This is a Rust build script that is utilized by Tauri's build system during compilation.
+To use the **AI Co-Pilot** and **AI Chat Translation** features, you will need to provide an API key in the application's Settings menu.
+* **Gemini (Recommended)**: Get a free API key from Google AI Studio. Provides excellent speed and TTS capabilities.
+* **OpenAI**: Get an API key from OpenAI for ChatGPT-style responses and premium TTS voices.
+* **Localhost (Ollama)**: Advanced users can run local models via Ollama for zero-latency, offline AI assistance!
 
-<target/:> This generated folder is where Cargo places all of your compiled binary files and build artifacts. When you eventually package your app for release, the final .exe file will be built here.
+---
+
+*WT Aura Velox Overlay is an open-source tool and is not officially affiliated with Gaijin Entertainment.*
