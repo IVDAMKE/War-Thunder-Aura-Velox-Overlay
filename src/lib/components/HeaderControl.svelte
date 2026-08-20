@@ -1,42 +1,92 @@
 <script lang="ts">
   import { invoke } from '@tauri-apps/api/core';
+  import { getCurrentWindow } from '@tauri-apps/api/window';
+  import { onMount, onDestroy } from 'svelte';
   import type { GameStatus } from '../types/telemetry';
   import ThemeSelector from './ThemeSelector.svelte';
 
   let {
     status = null,
     isClickThrough = false,
+    idleFadeTime = 15,
+    idleFadeOpacity = 0.33,
+    compactMode = false,
+    shortcutClickThrough = 'Ctrl+Shift+X',
+    shortcutSettings = 'Ctrl+Shift+S',
     onToggleClickThrough = () => {},
     onOpenSettings = () => {}
   }: {
     status?: GameStatus | null;
     isClickThrough?: boolean;
+    idleFadeTime?: number;
+    idleFadeOpacity?: number;
+    compactMode?: boolean;
+    shortcutClickThrough?: string;
+    shortcutSettings?: string;
     onToggleClickThrough?: () => void;
     onOpenSettings?: () => void;
   } = $props();
 
+  let isIdle = $state(false);
+  let idleTimeout: ReturnType<typeof setTimeout>;
+
+  function resetIdle() {
+    isIdle = false;
+    clearTimeout(idleTimeout);
+    idleTimeout = setTimeout(() => {
+      isIdle = true;
+    }, idleFadeTime * 1000);
+  }
+
+  function handlePointerMove(e: PointerEvent) {
+    if (e.clientY <= 70) {
+      resetIdle();
+    }
+  }
+
+  onMount(() => {
+    resetIdle();
+    window.addEventListener('pointermove', handlePointerMove);
+  });
+
+  onDestroy(() => {
+    clearTimeout(idleTimeout);
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('pointermove', handlePointerMove);
+    }
+  });
+
   async function handleHeaderMouseDown(e: MouseEvent) {
     if (e.button === 0 && !isClickThrough) {
       try {
-        await invoke('start_drag');
+        await getCurrentWindow().startDragging();
       } catch (err) {
-        console.warn('Start drag failed or running outside Tauri:', err);
+        try {
+          await invoke('start_drag');
+        } catch (err2) {
+          console.warn('Start drag failed:', err2);
+        }
       }
     }
   }
 </script>
 
-<div class="header-control overlay-card">
+<div
+  class="header-control overlay-card {isIdle ? 'idle' : ''} {compactMode ? 'compact' : ''}"
+  style="--idle-opacity: {idleFadeOpacity};"
+  onpointerenter={resetIdle}
+  onpointermove={resetIdle}
+  role="presentation"
+>
   <div
     class="brand"
     data-tauri-drag-region
     onmousedown={handleHeaderMouseDown}
-    role="button"
-    tabindex="0"
+    role="presentation"
   >
-    <span class="drag-handle" data-tauri-drag-region>⣿</span>
-    <span class="logo" data-tauri-drag-region>⚡ WAR THUNDER ASSISTANT</span>
-    <div class="status-indicator">
+    <span class="material-symbols-outlined drag-handle" data-tauri-drag-region>drag_indicator</span>
+    <span class="logo" data-tauri-drag-region><span class="material-symbols-outlined logo-icon" data-tauri-drag-region>bolt</span> WT AURA VELOX OVERLAY</span>
+    <div class="status-indicator" data-tauri-drag-region>
       {#if status?.connected}
         <span class="dot online"></span>
         <span class="status-text text-online">LIVE TELEMETRY</span>
@@ -50,37 +100,37 @@
     </div>
   </div>
 
-  <div class="actions">
+  <div class="actions" onmousedown={(e) => e.stopPropagation()}>
     <ThemeSelector />
 
     <button
       class="icon-btn settings-btn"
-      onclick={onOpenSettings}
-      title="Configure interface layout settings (Shortcut: Ctrl+Shift+S)"
+      onclick={(e) => { e.stopPropagation(); onOpenSettings(); }}
+      title="Settings (Shortcut: {shortcutSettings})"
     >
-      ⚙️ SETTINGS
+      <span class="material-symbols-outlined">settings</span>
     </button>
 
     {#if !status?.game_running}
       <button
         class="icon-btn force-btn"
-        onclick={() => invoke('force_connect')}
-        title="Bypass game detection"
+        onclick={(e) => { e.stopPropagation(); invoke('force_connect'); }}
+        title="Force Connect (Bypass game detection)"
       >
-        ⚡ FORCE CONNECT
+        <span class="material-symbols-outlined">sync</span>
       </button>
     {/if}
 
     <button
       class="click-through-btn"
       class:active={isClickThrough}
-      onclick={onToggleClickThrough}
-      title="Toggle mouse pass-through mode (Shortcut: Ctrl+Shift+X)"
+      onclick={(e) => { e.stopPropagation(); onToggleClickThrough(); }}
+      title={isClickThrough ? `Click-Through Mode Active (Shortcut: ${shortcutClickThrough})` : `Interactive Mode Active (Shortcut: ${shortcutClickThrough})`}
     >
       {#if isClickThrough}
-        <span class="btn-icon">👻</span> CLICK-THROUGH ON
+        <span class="material-symbols-outlined">touch_app</span>
       {:else}
-        <span class="btn-icon">🖱️</span> INTERACTIVE MODE
+        <span class="material-symbols-outlined">mouse</span>
       {/if}
     </button>
   </div>
@@ -92,6 +142,24 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    transition: opacity 0.4s ease, filter 0.4s ease;
+  }
+
+  .header-control.idle {
+    opacity: var(--idle-opacity, 0.33);
+  }
+
+  .header-control.compact {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .header-control:hover,
+  .header-control.idle:hover {
+    opacity: 1;
   }
 
   .brand {

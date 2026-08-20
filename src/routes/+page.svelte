@@ -3,7 +3,7 @@
   import { invoke } from '@tauri-apps/api/core';
   import { WebviewWindow, getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
   import { getCurrentWindow } from '@tauri-apps/api/window';
-  import { LogicalSize } from '@tauri-apps/api/dpi';
+  import { LogicalSize, PhysicalSize, PhysicalPosition } from '@tauri-apps/api/dpi';
   import { page } from '$app/stores';
   import type { GameStatus, TelemetryPayload, TranslatedChatMessage, HudMsgPayload } from '$lib/types/telemetry';
   import { DEFAULT_SETTINGS, type InterfaceSettings } from '$lib/types/settings';
@@ -100,7 +100,10 @@
     try {
       await invoke('toggle_click_through', { ignore: enable });
       isClickThrough = enable;
-      if (!isClickThrough) {
+      const keyCombo = settings.shortcutToggleClickThrough || 'Ctrl+Shift+X';
+      if (isClickThrough) {
+        triggerToast(`Click-Through Mode Active: Mouse passes to game (Press ${keyCombo} or Esc to return)`, 4000);
+      } else {
         triggerToast('Interactive Mode Restored - Window controls active.', 3000);
       }
     } catch (e) {
@@ -110,6 +113,26 @@
 
   function toggleClickThrough() {
     setClickThrough(!isClickThrough);
+  }
+
+  function matchShortcut(e: KeyboardEvent, shortcutString: string): boolean {
+    if (!shortcutString) return false;
+    if (['Control', 'Shift', 'Alt', 'Meta'].includes(e.key)) return false;
+
+    const parts: string[] = [];
+    if (e.ctrlKey) parts.push('Ctrl');
+    if (e.altKey) parts.push('Alt');
+    if (e.shiftKey) parts.push('Shift');
+    if (e.metaKey) parts.push('Win');
+
+    let key = e.key;
+    if (key === ' ') key = 'Space';
+    else if (key.length === 1) key = key.toUpperCase();
+
+    parts.push(key);
+    const pressed = parts.join('+');
+
+    return pressed.toLowerCase() === shortcutString.trim().toLowerCase();
   }
 
   // Ensure interactive mode on mount
@@ -131,11 +154,83 @@
     } catch (e) {
       console.warn('Failed to load settings from localStorage:', e);
     }
-    
-    // If we are in the main window, maximize height dynamically
-    if (!widgetMode && (window as any).__TAURI_INTERNALS__) {
-      getCurrentWindow().setSize(new LogicalSize(1000, window.screen.availHeight)).catch(e => console.warn('Could not set height:', e));
+  });
+
+  // Helper to convert hex color and opacity float to rgba string
+  function hexToRgba(hex: string, alpha: number): string {
+    if (!hex || !hex.startsWith('#')) return `rgba(18, 24, 38, ${alpha})`;
+    let c = hex.substring(1);
+    if (c.length === 3) c = c.split('').map(x => x + x).join('');
+    const num = parseInt(c, 16);
+    if (isNaN(num)) return `rgba(18, 24, 38, ${alpha})`;
+    const r = (num >> 16) & 255;
+    const g = (num >> 8) & 255;
+    const b = num & 255;
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+
+  // Apply Window Launch Mode (Full Screen vs Last Saved Position & Size)
+  async function applyWindowLaunchMode() {
+    if (widgetMode || !(window as any).__TAURI_INTERNALS__) return;
+    const appWin = getCurrentWindow();
+
+    if (settings.windowLaunchMode === 'fullscreen') {
+      try {
+        await appWin.setFullscreen(true);
+      } catch (e) {
+        try {
+          await appWin.setSize(new LogicalSize(window.screen.width, window.screen.height));
+          await appWin.setPosition(new PhysicalPosition(0, 0));
+        } catch (e2) {
+          console.warn('Could not set fullscreen size:', e2);
+        }
+      }
+    } else if (settings.windowLaunchMode === 'lastPosition') {
+      try {
+        await appWin.setFullscreen(false);
+        if (settings.savedWindowSize?.w && settings.savedWindowSize?.h) {
+          await appWin.setSize(new PhysicalSize(settings.savedWindowSize.w, settings.savedWindowSize.h));
+        }
+        if (settings.savedWindowPosition?.x !== undefined && settings.savedWindowPosition?.y !== undefined) {
+          await appWin.setPosition(new PhysicalPosition(settings.savedWindowPosition.x, settings.savedWindowPosition.y));
+        }
+      } catch (e) {
+        console.warn('Could not restore window position/size:', e);
+      }
     }
+  }
+
+  $effect(() => {
+    applyWindowLaunchMode();
+  });
+
+  // Save window position & size when user moves or resizes the main window
+  $effect(() => {
+    if (widgetMode || !(window as any).__TAURI_INTERNALS__) return;
+
+    let unlistenMove: any;
+    let unlistenResize: any;
+
+    async function trackTransform() {
+      try {
+        const appWin = getCurrentWindow();
+        unlistenMove = await appWin.onMoved(({ payload: position }) => {
+          settings.savedWindowPosition = { x: position.x, y: position.y };
+        });
+        unlistenResize = await appWin.onResized(({ payload: size }) => {
+          settings.savedWindowSize = { w: size.width, h: size.height };
+        });
+      } catch (e) {
+        console.warn('Could not attach transform listeners:', e);
+      }
+    }
+
+    trackTransform();
+
+    return () => {
+      if (unlistenMove) unlistenMove();
+      if (unlistenResize) unlistenResize();
+    };
   });
 
   // Save settings on update
@@ -150,8 +245,8 @@
   // Global Keyboard Listener for Shortcuts
   $effect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      // Ctrl + Shift + X -> Toggle Click Through
-      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'x') {
+      // Configurable Click Through Shortcut
+      if (matchShortcut(e, settings.shortcutToggleClickThrough || 'Ctrl+Shift+X')) {
         e.preventDefault();
         toggleClickThrough();
       }
@@ -160,8 +255,8 @@
         e.preventDefault();
         setClickThrough(false);
       }
-      // Ctrl + Shift + S -> Toggle Settings Modal
-      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 's') {
+      // Configurable Settings / Header Bar Shortcut
+      if (matchShortcut(e, settings.shortcutToggleSettings || 'Ctrl+Shift+S')) {
         e.preventDefault();
         isSettingsOpen = !isSettingsOpen;
       }
@@ -243,10 +338,34 @@
   }
 </script>
 
-<main class="app-layout">
+<main
+  class="app-layout"
+  style="
+    {settings.overlayAccentColor ? `--accent-color: ${settings.overlayAccentColor}; --accent-hover: ${settings.overlayAccentColor}; --accent-glow: 0 0 16px ${settings.overlayAccentColor}66;` : ''}
+    {settings.overlayBgColor && settings.overlayOpacity !== undefined ? `--bg-card: ${hexToRgba(settings.overlayBgColor, settings.overlayOpacity)}; --bg-card-hover: ${hexToRgba(settings.overlayBgColor, Math.min(1, settings.overlayOpacity + 0.1))};` : ''}
+    {settings.overlayCardRadius !== undefined ? `--card-radius: ${settings.overlayCardRadius}px;` : ''}
+    {settings.overlayBackdropBlur !== undefined ? `--backdrop-blur: blur(${settings.overlayBackdropBlur}px);` : ''}
+  "
+>
+  {#if settings.customCss}
+    {@html `<style>${settings.customCss}</style>`}
+  {/if}
   {#if widgetMode}
     <div class="standalone-container">
-      <div class="standalone-header" data-tauri-drag-region>
+      <div
+        class="standalone-header"
+        data-tauri-drag-region
+        onmousedown={async (e) => {
+          if (e.button === 0) {
+            try {
+              await getCurrentWindow().startDragging();
+            } catch (err) {
+              try { await invoke('start_drag'); } catch (err2) {}
+            }
+          }
+        }}
+        role="presentation"
+      >
         <span class="standalone-title" data-tauri-drag-region>
           {#if widgetMode === 'map'}Tactical Map
           {:else if widgetMode === 'chat'}Live Chat
@@ -260,7 +379,8 @@
           class="standalone-close" 
           style="-webkit-app-region: no-drag;" 
           onpointerdown={(e) => { e.stopPropagation(); closeStandaloneWindow(); }}
-        >✕</button>
+          title="Close Window"
+        ><span class="material-symbols-outlined">close</span></button>
       </div>
       
       <div class="standalone-content">
@@ -282,16 +402,10 @@
       </div>
     </div>
   {:else}
-  <!-- Click-Through Active Persistent Banner or Auto-Disappearing Restoration Toast -->
-  {#if isClickThrough}
-    <div class="toast-banner click-through">
-      <span class="toast-icon">🔒</span>
-      <span class="toast-text">Click-Through Mode Active: Mouse passes to game</span>
-      <span class="shortcut-tag">Press Ctrl + Shift + X or Esc to return</span>
-    </div>
-  {:else if showToast}
-    <div class="toast-banner">
-      <span class="toast-icon">✨</span>
+  <!-- Auto-Disappearing Mode & Info Toast Banner -->
+  {#if showToast}
+    <div class="toast-banner" class:click-through={isClickThrough}>
+      <span class="toast-icon"><span class="material-symbols-outlined">{isClickThrough ? 'lock' : 'auto_awesome'}</span></span>
       <span class="toast-text">{toastMessage}</span>
     </div>
   {/if}
@@ -301,6 +415,11 @@
       <HeaderControl
         {status}
         {isClickThrough}
+        idleFadeTime={settings.idleFadeTime}
+        idleFadeOpacity={settings.idleFadeOpacity}
+        compactMode={settings.compactMode}
+        shortcutClickThrough={settings.shortcutToggleClickThrough || 'Ctrl+Shift+X'}
+        shortcutSettings={settings.shortcutToggleSettings || 'Ctrl+Shift+S'}
         onToggleClickThrough={toggleClickThrough}
         onOpenSettings={() => isSettingsOpen = true}
       />
@@ -308,9 +427,9 @@
       <button
         class="header-restore-btn"
         onclick={() => isSettingsOpen = true}
-        title="Click or press Ctrl+Shift+S to open Settings and restore Top Header Bar"
+        title="Open Settings and restore Top Header Bar ({settings.shortcutToggleSettings || 'Ctrl+Shift+S'})"
       >
-        ⚙️ Restore Header Bar (Ctrl+Shift+S)
+        <span class="material-symbols-outlined">settings</span>
       </button>
     {/if}
 
@@ -551,9 +670,10 @@
     height: 100vh;
     display: flex;
     flex-direction: column;
-    background: rgba(15, 23, 42, 0.85);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--bg-card);
+    backdrop-filter: var(--backdrop-blur);
+    -webkit-backdrop-filter: var(--backdrop-blur);
+    border: 1px solid var(--border-color);
     box-sizing: border-box;
     overflow: hidden;
   }

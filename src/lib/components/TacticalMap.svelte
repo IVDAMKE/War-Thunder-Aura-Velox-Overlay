@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { InterfaceSettings } from '$lib/types/settings';
+  import type { InterfaceSettings, TacticalMapTemplate } from '$lib/types/settings';
   import type { TranslatedChatMessage } from '$lib/types/telemetry';
 
   let { 
@@ -23,6 +23,100 @@
   let panX = $state(0);
   let panY = $state(0);
 
+  // --- MAP TEMPLATES & AUTO REFRESH STATE ---
+  function getMapIdentifier(info: any): string | null {
+    if (!info) return null;
+    if (info.map_name) return info.map_name;
+    if (info.map_min && info.map_max && info.grid_zero) {
+      return `${info.map_min[0]}_${info.map_min[1]}_${info.map_max[0]}_${info.map_max[1]}_${info.grid_zero[0]}_${info.grid_zero[1]}`;
+    }
+    return 'default_map';
+  }
+
+  let currentMapId = $state<string | null>(null);
+  let activeTemplateId = $state<string>('none');
+  let showSaveTemplateModal = $state(false);
+  let newTemplateName = $state('');
+  let showTemplateMenu = $state(false);
+
+  let currentMapTemplates = $derived(
+    settings.mapTemplates?.filter(t => t.mapId === (currentMapId || 'default_map')) || []
+  );
+
+  let currentMapName = $derived(
+    mapInfo?.map_name || (currentMapId ? `Map (${currentMapId})` : 'Tactical Map')
+  );
+
+  let activeTemplateName = $derived(
+    activeTemplateId === 'none' 
+      ? 'No Template' 
+      : (settings.mapTemplates?.find(t => t.id === activeTemplateId)?.name || 'No Template')
+  );
+
+  // Automatic Map Change & Refresh & Auto-Template Select Effect
+  $effect(() => {
+    if (mapInfo) {
+      const newMapId = getMapIdentifier(mapInfo);
+      if (newMapId && newMapId !== currentMapId) {
+        currentMapId = newMapId;
+        mapCacheBuster = Date.now();
+        zoom = 1;
+        panX = 0;
+        panY = 0;
+
+        // Auto-select template if enabled
+        if (settings.autoSelectMapTemplate) {
+          const available = settings.mapTemplates?.filter(t => t.mapId === currentMapId) || [];
+          if (available.length > 0) {
+            const firstTpl = available[0];
+            activeTemplateId = firstTpl.id;
+            shapes = JSON.parse(JSON.stringify(firstTpl.shapes));
+          } else {
+            activeTemplateId = 'none';
+          }
+        }
+      }
+    } else {
+      currentMapId = null;
+    }
+  });
+
+  function loadTemplate(tplId: string) {
+    activeTemplateId = tplId;
+    if (tplId === 'none') {
+      shapes = [];
+      return;
+    }
+    const tpl = settings.mapTemplates?.find(t => t.id === tplId);
+    if (tpl) {
+      shapes = JSON.parse(JSON.stringify(tpl.shapes));
+    }
+  }
+
+  function handleSaveTemplate() {
+    if (!newTemplateName.trim()) return;
+    const mapKey = currentMapId || 'default_map';
+    const newTpl: TacticalMapTemplate = {
+      id: 'tpl_' + Date.now(),
+      mapId: mapKey,
+      name: newTemplateName.trim(),
+      createdAt: Date.now(),
+      shapes: JSON.parse(JSON.stringify(shapes))
+    };
+
+    settings.mapTemplates = [...(settings.mapTemplates || []), newTpl];
+    activeTemplateId = newTpl.id;
+    showSaveTemplateModal = false;
+    newTemplateName = '';
+  }
+
+  function deleteCurrentTemplate() {
+    if (activeTemplateId === 'none') return;
+    settings.mapTemplates = (settings.mapTemplates || []).filter(t => t.id !== activeTemplateId);
+    activeTemplateId = 'none';
+    shapes = [];
+  }
+
   // --- DRAWING TYPES & STATE ---
   type Point = { x: number; y: number };
   type ShapeBase = { color: string; weight: number };
@@ -37,7 +131,6 @@
   let activeTool = $state<Tool>('pan');
   let selectedColor = $state('#FFFF00');
   let selectedWeight = $state(2);
-  let compactMode = $state(false);
   
   let shapes = $state<Shape[]>([]);
   let currentShape = $state<Shape | null>(null);
@@ -637,38 +730,61 @@
         <div class="toolbar-title">TACTICAL MAP</div>
       {/if}
       
-      <button class="refresh-btn" onclick={() => mapCacheBuster = Date.now()} title="Force Reload Map Texture">🔄</button>
+      <button class="refresh-btn" onclick={() => mapCacheBuster = Date.now()} title="Force Reload Map Texture">
+        <span class="material-symbols-outlined">refresh</span>
+      </button>
       
       <div class="tool-group tools">
-        <button class:active={activeTool === 'pan'} onclick={() => activeTool = 'pan'} title="Pan Map">🖐️</button>
-        <button class:active={activeTool === 'line'} onclick={() => activeTool = 'line'} title="Draw Line">📏</button>
-        <button class:active={activeTool === 'circle'} onclick={() => activeTool = 'circle'} title="Draw Circle">⭕</button>
-        <button class:active={activeTool === 'path'} onclick={() => activeTool = 'path'} title="Draw Path">〰️</button>
-        <button class:active={activeTool === 'poi'} onclick={() => activeTool = 'poi'} title="Add Waypoint">📍</button>
-        <button class:active={activeTool === 'eraser'} onclick={() => activeTool = 'eraser'} title="Eraser">🗑️</button>
+        <button class:active={activeTool === 'pan'} onclick={() => activeTool = 'pan'} title="Pan Map">
+          <span class="material-symbols-outlined">pan_tool</span>
+        </button>
+        <button class:active={activeTool === 'line'} onclick={() => activeTool = 'line'} title="Draw Line">
+          <span class="material-symbols-outlined">show_chart</span>
+        </button>
+        <button class:active={activeTool === 'circle'} onclick={() => activeTool = 'circle'} title="Draw Circle">
+          <span class="material-symbols-outlined">radio_button_unchecked</span>
+        </button>
+        <button class:active={activeTool === 'path'} onclick={() => activeTool = 'path'} title="Draw Path">
+          <span class="material-symbols-outlined">gesture</span>
+        </button>
+        <button class:active={activeTool === 'poi'} onclick={() => activeTool = 'poi'} title="Add Waypoint">
+          <span class="material-symbols-outlined">location_on</span>
+        </button>
+        <button class:active={activeTool === 'eraser'} onclick={() => activeTool = 'eraser'} title="Eraser">
+          <span class="material-symbols-outlined">ink_eraser</span>
+        </button>
       </div>
       
       {#if activeTool === 'path' && currentShape?.type === 'path' && currentShape.points.length > 0}
-        <button class="commit-btn" onclick={commitPath} title="Finish Path">✅ Finish</button>
+        <button class="commit-btn" onclick={commitPath} title="Finish Path">
+          <span class="material-symbols-outlined">check_circle</span>
+        </button>
       {/if}
       
-      <button class="danger-btn" onclick={() => { shapes = []; currentShape = null; }} title="Clear All">💥 Clear</button>
+      <button class="danger-btn" onclick={() => { shapes = []; currentShape = null; }} title="Clear All Markers">
+        <span class="material-symbols-outlined">delete_forever</span>
+      </button>
     </div>
     
     <div class="toolbar-bottom">
       {#if settings.compactMode}
-        <div class="tool-group">
+        <div class="tool-group compact-inline">
+          <button onclick={cycleWeight} title="Cycle Thickness">
+            {selectedWeight === 2 ? '1x' : selectedWeight === 5 ? '2x' : '3x'}
+          </button>
           <button 
             class="color-btn active" 
             style="background: {selectedColor};" 
             onclick={cycleColor}
             title="Cycle Color"
           ></button>
-          <button onclick={cycleWeight} title="Cycle Thickness">
-            {selectedWeight === 2 ? 'Thin' : selectedWeight === 5 ? 'Med' : 'Thick'}
-          </button>
         </div>
       {:else}
+        <div class="tool-group weights">
+          <button class:active={selectedWeight === 2} onclick={() => selectedWeight = 2}>1x</button>
+          <button class:active={selectedWeight === 5} onclick={() => selectedWeight = 5}>2x</button>
+          <button class:active={selectedWeight === 8} onclick={() => selectedWeight = 8}>3x</button>
+        </div>
         <div class="tool-group colors">
           {#each COLORS as c}
             <button 
@@ -680,14 +796,90 @@
             ></button>
           {/each}
         </div>
-        <div class="tool-group weights">
-          <button class:active={selectedWeight === 2} onclick={() => selectedWeight = 2}>Thin</button>
-          <button class:active={selectedWeight === 5} onclick={() => selectedWeight = 5}>Med</button>
-          <button class:active={selectedWeight === 8} onclick={() => selectedWeight = 8}>Thick</button>
-        </div>
       {/if}
+
+      <!-- Unified Split Button for Map Marker Templates -->
+      <div class="template-controls">
+        <div class="split-template-btn" class:active={showTemplateMenu}>
+          <button
+            class="split-save-part"
+            onclick={() => { showSaveTemplateModal = true; newTemplateName = ''; }}
+            title="Save current markers as a new template for this map"
+          >
+            <span class="material-symbols-outlined">save</span>
+          </button>
+
+          <div class="split-divider"></div>
+
+          <button
+            class="split-arrow-part"
+            onclick={() => showTemplateMenu = !showTemplateMenu}
+            title={activeTemplateId !== 'none' ? `Active Template: ${activeTemplateName}` : 'Select Map Template'}
+          >
+            <span class="material-symbols-outlined">arrow_drop_down</span>
+          </button>
+        </div>
+
+        {#if showTemplateMenu}
+          <div class="template-menu-popup" onmouseleave={() => showTemplateMenu = false}>
+            <div
+              class="template-menu-item"
+              class:selected={activeTemplateId === 'none'}
+              onclick={() => { loadTemplate('none'); showTemplateMenu = false; }}
+              role="presentation"
+            >
+              <span class="material-symbols-outlined item-icon">block</span>
+              <span>No Template</span>
+            </div>
+
+            {#if currentMapTemplates.length > 0}
+              <div class="menu-divider"></div>
+              {#each currentMapTemplates as tpl}
+                <div
+                  class="template-menu-item"
+                  class:selected={activeTemplateId === tpl.id}
+                  onclick={() => { loadTemplate(tpl.id); showTemplateMenu = false; }}
+                  role="presentation"
+                >
+                  <span class="material-symbols-outlined item-icon">location_on</span>
+                  <span class="item-name">{tpl.name}</span>
+                  {#if activeTemplateId === tpl.id}
+                    <button
+                      class="item-delete-btn"
+                      onclick={(e) => { e.stopPropagation(); deleteCurrentTemplate(); showTemplateMenu = false; }}
+                      title="Delete Template"
+                    >
+                      <span class="material-symbols-outlined">delete</span>
+                    </button>
+                  {/if}
+                </div>
+              {/each}
+            {/if}
+          </div>
+        {/if}
+      </div>
     </div>
   </div>
+
+  {#if showSaveTemplateModal}
+    <div class="template-modal-backdrop" onclick={() => showSaveTemplateModal = false} role="presentation">
+      <div class="template-modal-card" onclick={(e) => e.stopPropagation()} role="presentation">
+        <h4>💾 Save Map Marker Template</h4>
+        <p class="desc">Save current tactical markers for map: <strong>{currentMapName}</strong></p>
+        <input
+          type="text"
+          bind:value={newTemplateName}
+          placeholder="Template Name (e.g. Airfields & Choke Points)"
+          class="text-input tpl-name-input"
+          onkeydown={(e) => { if (e.key === 'Enter') handleSaveTemplate(); }}
+        />
+        <div class="tpl-modal-actions">
+          <button class="cancel-btn" onclick={() => showSaveTemplateModal = false}>Cancel</button>
+          <button class="save-btn" onclick={handleSaveTemplate} disabled={!newTemplateName.trim()}>Save Template</button>
+        </div>
+      </div>
+    </div>
+  {/if}
   
   <canvas 
     bind:this={canvas} 
@@ -708,9 +900,9 @@
     height: 100%;
     display: flex;
     flex-direction: column;
-    background: #0f172a;
+    background: transparent;
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: var(--card-radius, 8px);
     overflow: hidden;
     pointer-events: auto;
   }
@@ -719,7 +911,7 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
-    background: rgba(15, 23, 42, 0.9);
+    background: var(--bg-card, rgba(15, 23, 42, 0.9));
     padding: 8px;
     border-bottom: 1px solid var(--border-color);
     z-index: 10;
@@ -751,8 +943,14 @@
 
   .map-container.compact .tool-group {
     flex-direction: column;
+    align-items: center;
     background: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(4px);
+  }
+
+  .map-container.compact .tool-group.compact-inline {
+    flex-direction: row;
+    align-items: center;
   }
 
   .toolbar-title {
@@ -837,5 +1035,197 @@
     height: 100%;
     cursor: crosshair;
     touch-action: none;
+  }
+
+  .template-controls {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+  }
+
+  .split-template-btn {
+    display: flex;
+    align-items: center;
+    background: rgba(56, 189, 248, 0.15);
+    border: 1px solid var(--accent-color);
+    border-radius: 6px;
+    overflow: hidden;
+    transition: all 0.2s ease;
+  }
+
+  .split-template-btn:hover, .split-template-btn.active {
+    box-shadow: 0 0 12px var(--accent-glow);
+    background: rgba(56, 189, 248, 0.25);
+  }
+
+  .split-save-part, .split-arrow-part {
+    background: transparent;
+    border: none;
+    color: var(--accent-color);
+    padding: 4px 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+
+  .split-save-part:hover, .split-arrow-part:hover {
+    background: var(--accent-color);
+    color: #0f172a;
+  }
+
+  .split-divider {
+    width: 1px;
+    height: 18px;
+    background: rgba(56, 189, 248, 0.35);
+  }
+
+  .template-menu-popup {
+    position: absolute;
+    bottom: 36px;
+    right: 0;
+    background: var(--bg-card, #121826);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 6px;
+    min-width: 180px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(12px);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .template-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+
+  .template-menu-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+  }
+
+  .template-menu-item.selected {
+    background: rgba(56, 189, 248, 0.2);
+    color: var(--accent-color);
+    font-weight: 600;
+  }
+
+  .template-menu-item .item-icon {
+    font-size: 16px;
+  }
+
+  .template-menu-item .item-name {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .template-menu-item .item-delete-btn {
+    background: transparent;
+    border: none;
+    color: var(--danger-color);
+    cursor: pointer;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    border-radius: 4px;
+    opacity: 0.7;
+  }
+
+  .template-menu-item .item-delete-btn:hover {
+    opacity: 1;
+    background: rgba(239, 68, 68, 0.25);
+  }
+
+  .menu-divider {
+    height: 1px;
+    background: var(--border-color);
+    margin: 4px 0;
+  }
+
+  .template-modal-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(6px);
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .template-modal-card {
+    background: var(--bg-card, #0f172a);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px 20px;
+    width: 320px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+  }
+
+  .template-modal-card h4 {
+    margin: 0 0 6px 0;
+    color: var(--accent-color);
+    font-size: 0.95rem;
+  }
+
+  .template-modal-card .desc {
+    margin: 0 0 12px 0;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+  }
+
+  .tpl-name-input {
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 14px;
+  }
+
+  .tpl-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .cancel-btn {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
+  }
+
+  .save-btn {
+    background: var(--accent-color);
+    color: #0f172a;
+    border: none;
+    font-weight: 700;
+    padding: 4px 14px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
+  }
+
+  .save-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
   }
 </style>

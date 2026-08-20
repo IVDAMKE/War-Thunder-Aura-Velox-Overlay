@@ -141,7 +141,7 @@
         onpointerdown={(e) => { e.stopPropagation(); onPopOut(); }} 
         title="Pop out into separate window"
       >
-        ⏏️
+        <span class="material-symbols-outlined">open_in_new</span>
       </button>
     {/if}
   </div>
@@ -166,17 +166,17 @@
 <style>
   .draggable-widget {
     position: absolute;
-    background: rgba(15, 23, 42, 0.65);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--card-radius);
     display: flex;
     flex-direction: column;
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    backdrop-filter: var(--backdrop-blur);
+    -webkit-backdrop-filter: var(--backdrop-blur);
+    box-shadow: var(--shadow-card);
     pointer-events: auto;
     overflow: hidden;
-    transition: box-shadow 0.2s ease, border-color 0.2s ease, opacity 0.5s ease;
+    transition: box-shadow 0.2s ease, border-color 0.2s ease, opacity 0.5s ease, background 0.25s ease, border-radius 0.25s ease;
     opacity: 1;
   }
 
@@ -222,18 +222,18 @@
   }
 
   .draggable-widget:hover {
-    border-color: rgba(255, 255, 255, 0.2);
+    border-color: var(--border-glow);
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
   }
 
   .widget-header {
     height: 28px;
-    background: rgba(15, 23, 42, 0.8);
+    background: rgba(0, 0, 0, 0.25);
     display: flex;
     align-items: center;
     padding: 0 8px;
     cursor: grab;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid var(--border-color);
     user-select: none;
     flex-shrink: 0;
   }

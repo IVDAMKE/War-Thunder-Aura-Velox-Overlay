@@ -1,4 +1,4 @@
-// Dynamic Multi-Language Chat Translation Engine for War Thunder Desktop Assistant
+// Dynamic Multi-Language Chat Translation Engine for WT Aura Velox Overlay
 
 const DICTIONARY: Record<string, Record<string, string>> = {
   // Common Russian words & combat calls

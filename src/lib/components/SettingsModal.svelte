@@ -36,15 +36,22 @@
     }
   }
 
-  function handleOverrideChange(checked: boolean) {
-    if (checked && settings.subscriptionTier === 'free') {
-      const confirmFees = confirm("Warning: You are overriding randomness on a free plan. This could result in possible API fees if you exceed your plan. Continue?");
-      if (!confirmFees) {
-        settings.aiOverrideRandomness = false;
-        return;
-      }
-    }
-    settings.aiOverrideRandomness = checked;
+  function recordKeybind(e: KeyboardEvent, settingKey: 'shortcutToggleClickThrough' | 'shortcutToggleSettings') {
+    e.preventDefault();
+    if (['Control', 'Shift', 'Alt', 'Meta'].includes(e.key)) return;
+
+    const parts: string[] = [];
+    if (e.ctrlKey) parts.push('Ctrl');
+    if (e.altKey) parts.push('Alt');
+    if (e.shiftKey) parts.push('Shift');
+    if (e.metaKey) parts.push('Win');
+
+    let key = e.key;
+    if (key === ' ') key = 'Space';
+    else if (key.length === 1) key = key.toUpperCase();
+
+    parts.push(key);
+    settings[settingKey] = parts.join('+');
   }
 </script>
 
@@ -123,6 +130,160 @@
               class="text-input"
               style="width: 100px"
             />
+          </div>
+          <div class="input-group">
+            <label for="window-launch-mode" class="input-label">
+              <span class="label-title">Window Launch Mode</span>
+              <span class="label-desc">Launch app in Full Screen of monitor or at last saved window position & size</span>
+            </label>
+            <select id="window-launch-mode" bind:value={settings.windowLaunchMode} class="select-input">
+              <option value="fullscreen">Full Screen (Default)</option>
+              <option value="lastPosition">Remember Last Window Position & Size</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Section: Advanced Theme & Custom Design -->
+        <div class="setting-section">
+          <span class="section-title">🎨 ADVANCED THEME & CUSTOM DESIGN</span>
+
+          <div class="input-group">
+            <label for="accent-color-picker" class="input-label">
+              <span class="label-title">Overlay Accent Color</span>
+              <span class="label-desc">Primary highlight & glowing element color</span>
+            </label>
+            <div class="color-picker-wrapper">
+              <input
+                id="accent-color-picker"
+                type="color"
+                bind:value={settings.overlayAccentColor}
+                class="color-input"
+              />
+              <span class="color-hex">{settings.overlayAccentColor}</span>
+              <button class="reset-keybind-btn" onclick={() => settings.overlayAccentColor = '#38bdf8'} title="Reset accent color">↺</button>
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label for="bg-color-picker" class="input-label">
+              <span class="label-title">Overlay Background Base Color</span>
+              <span class="label-desc">Base color for glassmorphic cards and panels</span>
+            </label>
+            <div class="color-picker-wrapper">
+              <input
+                id="bg-color-picker"
+                type="color"
+                bind:value={settings.overlayBgColor}
+                class="color-input"
+              />
+              <span class="color-hex">{settings.overlayBgColor}</span>
+              <button class="reset-keybind-btn" onclick={() => settings.overlayBgColor = '#121826'} title="Reset background color">↺</button>
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label for="opacity-slider" class="input-label">
+              <span class="label-title">Opacity Intensity ({Math.round(settings.overlayOpacity * 100)}%)</span>
+              <span class="label-desc">Controls transparency strength of interface panels</span>
+            </label>
+            <input
+              id="opacity-slider"
+              type="range"
+              min="0.05"
+              max="1"
+              step="0.05"
+              bind:value={settings.overlayOpacity}
+              class="range-input"
+            />
+          </div>
+
+          <div class="input-group">
+            <label for="radius-slider" class="input-label">
+              <span class="label-title">Panel Corner Rounding ({settings.overlayCardRadius}px)</span>
+              <span class="label-desc">Adjust corner radius of cards and panels</span>
+            </label>
+            <input
+              id="radius-slider"
+              type="range"
+              min="0"
+              max="32"
+              step="1"
+              bind:value={settings.overlayCardRadius}
+              class="range-input"
+            />
+          </div>
+
+          <div class="input-group">
+            <label for="blur-slider" class="input-label">
+              <span class="label-title">Glassmorphism Blur ({settings.overlayBackdropBlur}px)</span>
+              <span class="label-desc">Backdrop blur filter intensity for frosted glass effect</span>
+            </label>
+            <input
+              id="blur-slider"
+              type="range"
+              min="0"
+              max="30"
+              step="1"
+              bind:value={settings.overlayBackdropBlur}
+              class="range-input"
+            />
+          </div>
+
+          <div class="input-group">
+            <label for="custom-css-input" class="input-label">
+              <span class="label-title">Custom CSS Styling</span>
+              <span class="label-desc">Inject your own custom CSS rules into the overlay</span>
+            </label>
+            <textarea
+              id="custom-css-input"
+              bind:value={settings.customCss}
+              rows="4"
+              placeholder="/* Add custom CSS rules here */"
+              class="text-input custom-css-textarea"
+            ></textarea>
+          </div>
+        </div>
+
+        <!-- Section: Keybindings & Shortcuts -->
+        <div class="setting-section">
+          <span class="section-title">KEYBINDINGS & SHORTCUTS</span>
+          
+          <div class="input-group">
+            <label for="keybind-clickthrough" class="input-label">
+              <span class="label-title">Interactive / Click-Through Mode Toggle</span>
+              <span class="label-desc">Shortcut to switch between Interactive & Click-Through mode</span>
+            </label>
+            <div class="keybind-recorder">
+              <input
+                id="keybind-clickthrough"
+                type="text"
+                readonly
+                value={settings.shortcutToggleClickThrough}
+                onkeydown={(e) => recordKeybind(e, 'shortcutToggleClickThrough')}
+                class="text-input keybind-input"
+                placeholder="Click and press keys..."
+              />
+              <button class="reset-keybind-btn" onclick={() => settings.shortcutToggleClickThrough = 'Ctrl+Shift+X'} title="Reset to default (Ctrl+Shift+X)">↺</button>
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label for="keybind-settings" class="input-label">
+              <span class="label-title">Settings / Header Bar Toggle</span>
+              <span class="label-desc">Shortcut to open Settings modal or restore Top Header</span>
+            </label>
+            <div class="keybind-recorder">
+              <input
+                id="keybind-settings"
+                type="text"
+                readonly
+                value={settings.shortcutToggleSettings}
+                onkeydown={(e) => recordKeybind(e, 'shortcutToggleSettings')}
+                class="text-input keybind-input"
+                placeholder="Click and press keys..."
+              />
+              <button class="reset-keybind-btn" onclick={() => settings.shortcutToggleSettings = 'Ctrl+Shift+S'} title="Reset to default (Ctrl+Shift+S)">↺</button>
+            </div>
           </div>
         </div>
 
@@ -351,35 +512,6 @@
             <label class="toggle-row">
               <span class="toggle-label">🎤 Auto-Send Voice Commands</span>
               <input type="checkbox" bind:checked={settings.aiVoiceAutoSend} />
-              <span class="slider"></span>
-            </label>
-
-            <div class="input-group">
-              <label for="ai-sub" class="input-label">
-                <span class="label-title">Subscription Tier</span>
-                <span class="label-desc">Determines AI Co-Pilot chatter frequency</span>
-              </label>
-              <select id="ai-sub" bind:value={settings.subscriptionTier} class="select-input">
-                <option value="free">Free Plan (Rare Chatter)</option>
-                <option value="paid">Paid Plan (Frequent Chatter)</option>
-              </select>
-            </div>
-
-            <label class="toggle-row">
-              <div class="toggle-info">
-                <span class="toggle-label">Enable Sarcastic Tower Chatter</span>
-                <span class="toggle-desc">Random snarky commentary based on flight telemetry</span>
-              </div>
-              <input type="checkbox" bind:checked={settings.aiRandomChatter} />
-              <span class="slider"></span>
-            </label>
-
-            <label class="toggle-row">
-              <div class="toggle-info">
-                <span class="toggle-label">Override Randomness</span>
-                <span class="toggle-desc">Forces max frequency for chatter (Warning: API Fees)</span>
-              </div>
-              <input type="checkbox" checked={settings.aiOverrideRandomness} onchange={(e) => handleOverrideChange(e.currentTarget.checked)} />
               <span class="slider"></span>
             </label>
 
@@ -765,5 +897,96 @@
 
   .done-btn:hover {
     background: var(--accent-hover);
+  }
+
+  .keybind-recorder {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .keybind-input {
+    font-family: monospace;
+    font-weight: 700;
+    text-align: center;
+    color: var(--accent-color);
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 6px 12px;
+    width: 160px;
+  }
+
+  .keybind-input:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 10px var(--accent-glow);
+  }
+
+  .reset-keybind-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    border-radius: 6px;
+    padding: 6px 10px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+  }
+
+  .reset-keybind-btn:hover {
+    color: var(--text-primary);
+    border-color: var(--accent-color);
+  }
+
+  .color-picker-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .color-input {
+    -webkit-appearance: none;
+    appearance: none;
+    border: 1px solid var(--border-color);
+    width: 38px;
+    height: 34px;
+    border-radius: 6px;
+    cursor: pointer;
+    background: transparent;
+    padding: 2px;
+  }
+
+  .color-input::-webkit-color-swatch-wrapper {
+    padding: 0;
+  }
+
+  .color-input::-webkit-color-swatch {
+    border: none;
+    border-radius: 4px;
+  }
+
+  .color-hex {
+    font-family: monospace;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    min-width: 70px;
+  }
+
+  .range-input {
+    width: 100%;
+    max-width: 260px;
+    accent-color: var(--accent-color);
+    cursor: pointer;
+  }
+
+  .custom-css-textarea {
+    font-family: 'Consolas', 'Fira Code', monospace;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    width: 100%;
+    resize: vertical;
+    box-sizing: border-box;
   }
 </style>

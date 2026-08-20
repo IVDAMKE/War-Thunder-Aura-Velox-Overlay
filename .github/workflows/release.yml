@@ -38,7 +38,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: app-v__VERSION__
-          releaseName: 'War Thunder Assistant v__VERSION__'
+          releaseName: 'WT Aura Velox Overlay v__VERSION__'
           releaseBody: 'See the assets to download the installer.'
           releaseDraft: true
           prerelease: false

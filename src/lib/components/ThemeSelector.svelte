@@ -4,9 +4,9 @@
   let currentTheme: ThemeType = $state('modern-bento');
 
   const themes: { id: ThemeType; label: string; icon: string }[] = [
-    { id: 'modern-bento', label: 'Bento Glass', icon: '✨' },
-    { id: 'dark-mode', label: 'OLED Dark', icon: '🌙' },
-    { id: 'white-mode', label: 'Light', icon: '☀️' }
+    { id: 'modern-bento', label: 'Bento Glass', icon: 'auto_awesome' },
+    { id: 'dark-mode', label: 'OLED Dark', icon: 'dark_mode' },
+    { id: 'white-mode', label: 'Light', icon: 'light_mode' }
   ];
 
   $effect(() => {
@@ -18,16 +18,15 @@
   }
 </script>
 
-<div class="theme-selector">
+<div class="theme-selector" onmousedown={(e) => e.stopPropagation()}>
   {#each themes as theme}
     <button
       class="theme-btn"
       class:active={currentTheme === theme.id}
-      onclick={() => selectTheme(theme.id)}
+      onclick={(e) => { e.stopPropagation(); selectTheme(theme.id); }}
       title={theme.label}
     >
-      <span class="icon">{theme.icon}</span>
-      <span class="label">{theme.label}</span>
+      <span class="material-symbols-outlined">{theme.icon}</span>
     </button>
   {/each}
 </div>

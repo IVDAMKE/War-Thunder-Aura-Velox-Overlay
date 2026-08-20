@@ -21,7 +21,6 @@
   
   let isListening = $state(false);
   let recognition: any = null;
-  let randomChatterInterval: any = null;
   let chatLogEl: HTMLDivElement;
 
   let audioContext: AudioContext | null = null;
@@ -66,31 +65,7 @@
         }
       };
     }
-
-    // Random Chatter Logic
-    randomChatterInterval = setInterval(() => {
-      if (!settings.aiRandomChatter) return;
-      if (!telemetry || !settings.aiApiKey) return;
-
-      let chance = settings.subscriptionTier === 'paid' ? 0.15 : 0.03;
-      if (settings.aiOverrideRandomness) chance = settings.subscriptionTier === 'paid' ? 0.30 : 0.15; // Increased chances on override
-
-      if (Math.random() < chance) {
-        triggerRandomChatter();
-      }
-    }, 15000);
   });
-
-  async function triggerRandomChatter() {
-    const prompt = "You are a sarcastic, muffled air traffic control tower. Look at the current telemetry and give a very short, snarky 1-sentence comment on the pilot's performance.";
-    try {
-      const responseText = await sendChatMessage([{ role: 'user', content: prompt }], telemetry, settings);
-      chatHistory = [...chatHistory, { role: 'assistant', content: responseText }];
-      speakWithTowerVoice(responseText);
-    } catch (e) {
-      console.warn('Random chatter failed', e);
-    }
-  }
 
   async function speakWithTowerVoice(text: string) {
     if (!settings.aiTtsEnabled) return;
@@ -290,7 +265,6 @@
 
   onDestroy(() => {
     if (recognition) recognition.stop();
-    if (randomChatterInterval) clearInterval(randomChatterInterval);
   });
 
   async function handleSend() {
@@ -402,9 +376,11 @@
           ></textarea>
           <div class="btn-group compact-btns">
             <button class="mic-btn" class:listening={isListening} on:click={toggleListen} title="Voice Input">
-              {isListening ? '🔴' : '🎤'}
+              <span class="material-symbols-outlined">{isListening ? 'graphic_eq' : 'mic'}</span>
             </button>
-            <button class="send-btn" on:click={handleSend} disabled={isLoading || !inputQuery.trim()} title="Send Message">➤</button>
+            <button class="send-btn" on:click={handleSend} disabled={isLoading || !inputQuery.trim()} title="Send Message">
+              <span class="material-symbols-outlined">send</span>
+            </button>
           </div>
         </div>
       </div>
@@ -418,11 +394,15 @@
       ></textarea>
       <div class="btn-group">
         <button class="mic-btn" class:listening={isListening} on:click={toggleListen} title="Voice Input">
-          {isListening ? '🔴' : '🎤'}
+          <span class="material-symbols-outlined">{isListening ? 'graphic_eq' : 'mic'}</span>
         </button>
-        <button class="send-btn" on:click={handleSend} disabled={isLoading || !inputQuery.trim()} title="Send Message">➤</button>
+        <button class="send-btn" on:click={handleSend} disabled={isLoading || !inputQuery.trim()} title="Send Message">
+          <span class="material-symbols-outlined">send</span>
+        </button>
         {#if settings.aiTtsEnabled}
-          <button class="stop-btn" on:click={stopTts} title="Stop Voice">🔇</button>
+          <button class="stop-btn" on:click={stopTts} title="Stop Voice">
+            <span class="material-symbols-outlined">volume_off</span>
+          </button>
         {/if}
       </div>
     {/if}

@@ -45,14 +45,38 @@ export interface InterfaceSettings {
   aiGeminiVoice: 'Aoede' | 'Charon' | 'Fenrir' | 'Kore' | 'Puck';
   aiVoiceDistortion: boolean;
   aiVoiceAutoSend: boolean;
-  aiRandomChatter: boolean;
-  aiOverrideRandomness: boolean;
-  subscriptionTier: 'free' | 'paid';
   
   idleFadeTime: number;
   idleFadeOpacity: number;
   
   compactMode: boolean;
+
+  windowLaunchMode: 'fullscreen' | 'lastPosition';
+  savedWindowPosition: { x: number; y: number } | null;
+  savedWindowSize: { w: number; h: number } | null;
+
+  shortcutToggleClickThrough: string;
+  shortcutToggleSettings: string;
+
+  // Custom Theme & Design Customizer
+  overlayAccentColor: string;
+  overlayBgColor: string;
+  overlayOpacity: number;
+  overlayCardRadius: number;
+  overlayBackdropBlur: number;
+  customCss: string;
+
+  // Tactical Map Marker Templates
+  mapTemplates: TacticalMapTemplate[];
+  autoSelectMapTemplate: boolean;
+}
+
+export interface TacticalMapTemplate {
+  id: string;
+  mapId: string;
+  name: string;
+  createdAt: number;
+  shapes: any[];
 }
 
 export const DEFAULT_SETTINGS: InterfaceSettings = {
@@ -93,12 +117,26 @@ export const DEFAULT_SETTINGS: InterfaceSettings = {
   aiGeminiVoice: 'Puck',
   aiVoiceDistortion: true,
   aiVoiceAutoSend: true,
-  aiRandomChatter: false,
-  aiOverrideRandomness: false,
-  subscriptionTier: 'free',
   idleFadeTime: 15,
   idleFadeOpacity: 0.33,
-  compactMode: false
+  compactMode: false,
+
+  windowLaunchMode: 'fullscreen',
+  savedWindowPosition: null,
+  savedWindowSize: null,
+
+  shortcutToggleClickThrough: 'Ctrl+Shift+X',
+  shortcutToggleSettings: 'Ctrl+Shift+S',
+
+  overlayAccentColor: '#38bdf8',
+  overlayBgColor: '#121826',
+  overlayOpacity: 0.72,
+  overlayCardRadius: 16,
+  overlayBackdropBlur: 14,
+  customCss: '',
+
+  mapTemplates: [],
+  autoSelectMapTemplate: true
 };
 
 export const SUPPORTED_LANGUAGES = [

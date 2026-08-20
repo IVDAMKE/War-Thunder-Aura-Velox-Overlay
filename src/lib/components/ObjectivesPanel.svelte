@@ -72,13 +72,14 @@
 
 <style>
   .objectives-panel {
-    background: rgba(15, 23, 42, 0.85);
+    background: var(--bg-card);
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: var(--card-radius);
     width: 250px;
     padding: 12px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-    backdrop-filter: blur(10px);
+    box-shadow: var(--shadow-card);
+    backdrop-filter: var(--backdrop-blur);
+    -webkit-backdrop-filter: var(--backdrop-blur);
     color: var(--text-primary);
     pointer-events: auto;
   }

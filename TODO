@@ -49,7 +49,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: app-v__VERSION__ # The action automatically replaces this with the version in your tauri.conf.json
-          releaseName: 'War Thunder Assistant v__VERSION__'
+          releaseName: 'WT Aura Velox Overlay v__VERSION__'
           releaseBody: 'See the assets to download the installer.'
           releaseDraft: true
           prerelease: false
