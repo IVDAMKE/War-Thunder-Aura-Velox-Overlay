@@ -10,7 +10,7 @@
 Communication is key in Simulator battles, but language barriers can cause critical information to be lost.
 * **Auto-Translation**: Automatically translates foreign game chat messages into your preferred language using AI or Google Translate. 
 * **Team Filtering**: Filter chat messages to only see "Team" or "Squad" chat, hiding unnecessary system messages or enemy banter.
-* **Auto-Map Pings**: Whenever an ally types a grid reference in chat (e.g., `[D5]` or `Attention to the designated grid zone! [C4]`), WTAVO instantly places a temporary glowing waypoint on your Tactical Map!
+
 
 ### 🗺️ Interactive Tactical Map & Navigation
 The in-game map is limited. WTAVO provides a fully featured tactical drawing board.
