@@ -6,10 +6,9 @@
 
 ## 🌟 Key Features for Air Simulator
 
-### 🗣️ Live Chat Translation & Map Pings
+### 🗣️ Live Chat Translation
 Communication is key in Simulator battles, but language barriers can cause critical information to be lost.
 * **Auto-Translation**: Automatically translates foreign game chat messages into your preferred language using AI or Google Translate. 
-* **Team Filtering**: Filter chat messages to only see "Team" or "Squad" chat, hiding unnecessary system messages or enemy banter.
 
 
 ### 🗺️ Interactive Tactical Map & Navigation
@@ -22,16 +21,15 @@ The in-game map is limited. WTAVO provides a fully featured tactical drawing boa
 A hands-free, telemetry-aware AI assistant sitting in the cockpit with you.
 * **Voice Recognition**: Talk directly into your microphone to ask the Co-Pilot questions without taking your hands off your HOTAS.
 * **Context-Aware**: The AI knows your current altitude, speed, heading, and aircraft type. Ask it things like *"What is my optimal climb speed?"* or *"Am I stalling?"* and it will respond based on your live telemetry data!
-* **Immersive TTS**: Co-pilot responds using Text-to-Speech (powered by OpenAI or Gemini) with optional radio-distortion effects for maximum immersion.
+* **Immersive TTS**: Co-pilot responds using Text-to-Speech (powered by OpenAI or Gemini).
 
 ### 🛩️ Live Telemetry HUD
 Keep your eyes out of the cockpit with a customizable, external Heads Up Display.
 * **Crucial Flight Data**: Real-time readouts of IAS, TAS, Mach, Altitude, Compass Heading, AoA (Angle of Attack), Engine RPM, and Throttle.
-* **Warnings**: Flashing visual alerts for **Stall Warnings** and **High G-Force** stress.
+
 
 ### 👻 Seamless Transparent Overlay (Compact Mode)
-WTAVO is built on Tauri and SvelteKit, allowing it to become a borderless, fully transparent overlay. Enable **Compact Mode** in the settings, and the UI elements will float directly over your War Thunder client without capturing your mouse clicks (unless you interact with the widgets).
-
+WTAVO is built on Tauri and SvelteKit, allowing it to become a borderless, fully transparent overlay.
 ---
 
 ## 🚀 Getting Started
