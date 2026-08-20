@@ -1,0 +1,18 @@
+[
+  {
+    "id": 1,
+    "msg": "nasd",
+    "sender": "IVDAMKE",
+    "enemy": false,
+    "mode": "Team",
+    "time": 1442
+  },
+  {
+    "id": 2,
+    "msg": "hola",
+    "sender": "IVDAMKE",
+    "enemy": false,
+    "mode": "Team",
+    "time": 1539
+  }
+]

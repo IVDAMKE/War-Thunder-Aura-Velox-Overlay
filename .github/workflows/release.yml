@@ -1,0 +1,44 @@
+name: 'publish'
+
+on:
+  push:
+    branches:
+      - release
+
+jobs:
+  publish-tauri:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [windows-latest]
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Install Node.js
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      # Install Rust
+      - name: install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      # Install frontend dependencies
+      - name: install frontend dependencies
+        run: npm install
+
+      # Use the official Tauri action to build and release
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: app-v__VERSION__
+          releaseName: 'War Thunder Assistant v__VERSION__'
+          releaseBody: 'See the assets to download the installer.'
+          releaseDraft: true
+          prerelease: false

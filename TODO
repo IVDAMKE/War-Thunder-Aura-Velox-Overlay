@@ -1,0 +1,65 @@
+2. Automating it with GitHub Actions
+Tauri provides an official GitHub Action called tauri-apps/tauri-action that handles the heavy lifting.
+
+To set it up:
+
+Create the Workflow File: Inside your project repository, create a new folder path: .github/workflows/ and add a file named release.yml.
+
+Add the Configuration: Paste the following configuration into release.yml. This script tells GitHub to spin up a Windows server, install Rust and Node.js, build your application, and automatically create a GitHub release containing the installer.
+
+[YAML]
+
+name: 'publish'
+
+on:
+  push:
+    branches:
+      - release # This action will trigger whenever you push code to a branch named "release"
+
+jobs:
+  publish-tauri:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [windows-latest] # We only need Windows for this app
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Install Node.js
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      # Install Rust
+      - name: install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      # Install frontend dependencies
+      - name: install frontend dependencies
+        run: npm install
+
+      # Use the official Tauri action to build and release
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: app-v__VERSION__ # The action automatically replaces this with the version in your tauri.conf.json
+          releaseName: 'War Thunder Assistant v__VERSION__'
+          releaseBody: 'See the assets to download the installer.'
+          releaseDraft: true
+          prerelease: false
+
+
+3. How to Trigger the Build
+Push your code to GitHub on your main branch.
+
+When you are ready to create an installer, create a new branch named release and push it to GitHub.
+
+The action will automatically trigger. You can watch its progress in the "Actions" tab of your GitHub repository.
+
+Once finished, a new draft release will appear in your repository's "Releases" section. The final .msi and .exe installer files will be attached to it, ready for anyone to download!
