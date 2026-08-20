@@ -44,7 +44,7 @@ WTAVO is built on Tauri and SvelteKit, allowing it to become a borderless, fully
 
 If you are downloading a pre-built release:
 1. Go to the [Releases](https://github.com/ivdamke/WT-Aura-Velox-Overlay/releases) page.
-2. Download and run the `WTAVO-Installer.exe`.
+2. Download and run the `WTAVO_0.1.11_x64_en-US.msi`.
 3. Launch the app while War Thunder is open.
 
 ### Development Setup
